@@ -5,7 +5,7 @@ export const createOneArticle = async (req, res) => {
     if (!title || !content || !categories)
         return res.status(400).json({ message: "all fields are required" });
     try {
-        const article = await Article.create({ title, categories, content });
+        const article = await Article.create({ title, categories, content, user:req.user });
         res.status(200).json({ article });
     } catch (err) {
         res.status(500).json({ message: "couldnt create article" });
@@ -18,7 +18,7 @@ export const getOneArticle = async (req, res) => {
         if (!article)
             return res.status(404).json({ message: "article not found" });
 
-        res.status(200).json({ article });
+        res.status(200).json(article );
     } catch (err) {
         res.status(500).json({ message: "couldnt get article" });
     }
@@ -56,9 +56,11 @@ export const updateOneArticle = async (req, res) => {
     }
 };
 export const getAllArticles = async (req, res) => {
+    const query = req.query.q;
+    const filter = query ? { title: { $regex: query, $options: 'i' } } : {};
     try {
-        const articles = await Article.find();
-        res.status(200).json({ articles });
+        const articles = await Article.find(filter).populate('user','username');
+        res.status(200).json(articles );
     } catch (err) {
         res.status(500).json({ message: "cant retrieve all articles" });
     }

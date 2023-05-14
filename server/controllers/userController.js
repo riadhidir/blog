@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
+
     const { username, password, role } = req.body;
     if (!username || !password )
         return res.status(400).json({ message: "all fields are required" });
@@ -17,7 +18,7 @@ export const register = async (req, res) => {
             password: hashedPassword,
             role,
         });
-        res.status(201).json({ success: user });
+        res.status(200).json(user);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -40,7 +41,7 @@ export const login = async (req, res) => {
             sameSite: true,
             maxAge: 24 * 60 * 60 * 1000, //1 day
         });
-        res.json({ accessToken });
+        res.json({roles: foundUser.role, accessToken, id:foundUser._id});
     } else {
         res.sendStatus(401);
     }
@@ -52,14 +53,14 @@ export const getMe = async (req, res) => {
 };
 
 export const refreshLogin = async (req, res) => {
+
     
     const cookies = req.cookies;
 
-    if (!cookies?.jwt) return res.sendStatus(401);
+    if (!cookies?.jwt) return res.status(401).json({message: "cookies"});
     const refreshToken = cookies.jwt;
 
     const foundUser = await User.findOne({ refreshToken });
-    console.log(foundUser);
     if (!foundUser) return res.sendStatus(403); //forbidden
     //evaluate jwt
     jwt.verify(
@@ -68,13 +69,14 @@ export const refreshLogin = async (req, res) => {
         (err, decoded) => {
             if (err || foundUser.id !== decoded.id) return res.sendStatus(403);
             const accessToken = generateAccessToken(decoded.id, foundUser.role);
-            res.json({ accessToken });
+            res.json({ accessToken, roles:foundUser.role });
         }
     );
 };
 
 export const logout = async (req, res) => {
-    //on client, also delete thee accessToken
+    //on client, also delete the accessToken
+
     const cookies = req.cookies;
     if (!cookies?.jwt) return res.sendStatus(204); //successful and no content
     const refreshToken = cookies.jwt;
